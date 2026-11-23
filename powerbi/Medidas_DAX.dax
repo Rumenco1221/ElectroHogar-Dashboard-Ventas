@@ -1,0 +1,19 @@
+-- Tablas: Fact_Ventas, Dim_Productos, Dim_Clientes, Fact_Objetivos, Pronostico, Calendario
+-- Relaciones: Fact_Ventas[SKU]->Dim_Productos[SKU_Clave]; Fact_Ventas[ID_Cliente]->Dim_Clientes[ID_Cliente];
+--             Fact_Ventas[Fecha]->Calendario[Fecha]; Fact_Objetivos[Fecha]->Calendario[Fecha]; Fact_Objetivos[Categoria]->Dim_Productos[Categoria] (tabla puente de categorías)
+
+Calendario = ADDCOLUMNS(CALENDAR(DATE(2026,1,1), DATE(2027,12,31)), "Anio", YEAR([Date]), "MesNum", MONTH([Date]), "Mes", FORMAT([Date],"mmm yy"))
+
+Venta Bruta   = SUMX(Fact_Ventas, Fact_Ventas[Cantidad] * Fact_Ventas[Precio_Unitario])
+Venta Neta    = SUMX(Fact_Ventas, Fact_Ventas[Cantidad] * Fact_Ventas[Precio_Unitario] * (1 - Fact_Ventas[Descuento]))
+Unidades      = SUM(Fact_Ventas[Cantidad])
+Transacciones = DISTINCTCOUNT(Fact_Ventas[ID_Transaccion])
+Ticket Promedio = DIVIDE([Venta Neta], [Transacciones])
+Descuento Medio = 1 - DIVIDE([Venta Neta], [Venta Bruta])
+Meta = SUM(Fact_Objetivos[Meta_Financiera])
+Cumplimiento Meta = DIVIDE([Venta Neta], [Meta])   -- ATENCION: con estos datos da ~2.400 %; la meta parece estar en otra escala
+Venta Mes Anterior = CALCULATE([Venta Neta], DATEADD(Calendario[Date], -1, MONTH))
+Var % Mensual = DIVIDE([Venta Neta] - [Venta Mes Anterior], [Venta Mes Anterior])
+Pronostico = SUM(Pronostico[Pronostico])
+Pronostico Inferior = SUM(Pronostico[Inferior])
+Pronostico Superior = SUM(Pronostico[Superior])
